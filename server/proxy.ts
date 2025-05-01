@@ -3,6 +3,14 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { log } from './vite';
 
 // Custom options interface for our proxy
+interface ContentFilterOptions {
+  blockImages: boolean;
+  blockScripts: boolean;
+  blockAds: boolean;
+  blockTrackers: boolean;
+  blockPopups: boolean;
+}
+
 interface ProxyOptions {
   target: string;
   changeOrigin?: boolean;
@@ -13,6 +21,7 @@ interface ProxyOptions {
   onProxyReq?: (proxyReq: any, req: Request, res: Response) => void;
   onProxyRes?: (proxyRes: any, req: Request, res: Response) => void;
   onError?: (err: Error, req: Request, res: Response) => void;
+  filterOptions?: ContentFilterOptions;
 }
 
 // List of known problematic domains that might block proxy access
@@ -26,13 +35,18 @@ const KNOWN_BLOCKING_DOMAINS = [
 // Create a proxy middleware factory function
 export function createProxy(options: ProxyOptions): RequestHandler {
   // Extract target to avoid duplicate property
-  const { target, ...restOptions } = options;
+  const { target, filterOptions, ...restOptions } = options;
   
   // Ensure target uses HTTPS
   let secureTarget = target;
   if (secureTarget.startsWith('http://')) {
     secureTarget = secureTarget.replace('http://', 'https://');
     log(`Upgraded connection to SSL/TLS: ${secureTarget}`, 'proxy-security');
+  }
+  
+  // Log filter options if provided
+  if (filterOptions) {
+    log(`Content filtering enabled: ${JSON.stringify(filterOptions)}`, 'proxy-filter');
   }
 
   const defaultOptions = {
@@ -91,11 +105,71 @@ export function createProxy(options: ProxyOptions): RequestHandler {
           });
         }
         
-        // Set Content-Security-Policy to allow framing and images from any source
-        proxyRes.headers['content-security-policy'] = 
-          "default-src * 'unsafe-inline' 'unsafe-eval' data:; " +
-          "img-src * data: blob: 'unsafe-inline'; " + 
-          "frame-ancestors 'self'";
+        // Get filter options if any
+        const filterOptions = options.filterOptions;
+        
+        // Apply content filters if options are provided
+        if (filterOptions) {
+          // Set Content-Security-Policy based on filter settings
+          let cspDirectives = [];
+          
+          // Default source policy
+          if (filterOptions.blockScripts) {
+            cspDirectives.push("script-src 'none'");
+          } else {
+            cspDirectives.push("script-src * 'unsafe-inline' 'unsafe-eval'");
+          }
+          
+          // Image policy
+          if (filterOptions.blockImages) {
+            cspDirectives.push("img-src 'none'");
+          } else {
+            cspDirectives.push("img-src * data: blob: 'unsafe-inline'");
+          }
+          
+          // If blocking popups
+          if (filterOptions.blockPopups) {
+            cspDirectives.push("frame-src 'self'");
+            cspDirectives.push("form-action 'self'");
+          } else {
+            cspDirectives.push("frame-src *");
+            cspDirectives.push("form-action *");
+          }
+          
+          // Default policy
+          cspDirectives.push("default-src * 'unsafe-inline' 'unsafe-eval' data:");
+          cspDirectives.push("frame-ancestors 'self'");
+          
+          // Set the constructed CSP header
+          proxyRes.headers['content-security-policy'] = cspDirectives.join('; ');
+          
+          // If blocking trackers, remove common tracking cookies
+          if (filterOptions.blockTrackers && proxyRes.headers['set-cookie']) {
+            const trackingCookiePatterns = [
+              /^_ga/, /^_gid/, /^_gat/, // Google Analytics
+              /^_fbp/, /^_fbc/,         // Facebook
+              /^_ym/, /^yandex/,        // Yandex
+              /^__utm/,                 // Various UTM tracking
+              /^optimizely/,            // Optimizely
+              /^hubspot/,               // HubSpot
+              /^intercom/               // Intercom
+            ];
+            
+            proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].filter((cookie: string) => {
+              // Keep the cookie if it doesn't match any tracking pattern
+              return !trackingCookiePatterns.some(pattern => pattern.test(cookie));
+            });
+          }
+          
+          // Log application of filters
+          log(`Applied content filters: ${JSON.stringify(filterOptions)}`, 'proxy-filter');
+        } else {
+          // Default CSP when no filters are applied
+          proxyRes.headers['content-security-policy'] = 
+            "default-src * 'unsafe-inline' 'unsafe-eval' data:; " +
+            "img-src * data: blob: 'unsafe-inline'; " + 
+            "frame-ancestors 'self'";
+        }
           
         // Remove X-Frame-Options to allow our own framing
         delete proxyRes.headers['x-frame-options'];
@@ -107,6 +181,37 @@ export function createProxy(options: ProxyOptions): RequestHandler {
         const contentType = proxyRes.headers['content-type'] || '';
         log(`Response headers: ${JSON.stringify(proxyRes.headers)}`, 'proxy-debug');
         
+        // Check if we should block this content type based on filter settings
+        if (filterOptions) {
+          // Block images if that option is enabled
+          if (filterOptions.blockImages && contentType.includes('image/')) {
+            log(`Blocking image content due to filter settings: ${req.url}`, 'proxy-filter');
+            res.status(403).send('Content blocked by filter settings');
+            return;
+          }
+          
+          // Block scripts if that option is enabled
+          if (filterOptions.blockScripts && 
+             (contentType.includes('javascript') || contentType.includes('application/js'))) {
+            log(`Blocking script content due to filter settings: ${req.url}`, 'proxy-filter');
+            res.status(403).send('Content blocked by filter settings');
+            return;
+          }
+          
+          // Block ads if that option is enabled (simple check based on URL patterns)
+          if (filterOptions.blockAds) {
+            const adPatterns = ['/ad/', '/ads/', '/adserver/', '/banner/', '/sponsor/', 
+                              'pagead', 'googleads', 'doubleclick.net', 'adnxs.com'];
+            const url = req.url || '';
+            if (adPatterns.some(pattern => url.includes(pattern))) {
+              log(`Blocking ad content due to filter settings: ${req.url}`, 'proxy-filter');
+              res.status(403).send('Content blocked by filter settings');
+              return;
+            }
+          }
+        }
+        
+        // Log content type if not blocked
         if (contentType.includes('text/html')) {
           log(`Received HTML content from ${target}`, 'proxy');
         } else if (contentType.includes('image/')) {
@@ -335,6 +440,18 @@ export function rewriteLinksMiddleware(req: Request, res: Response, next: NextFu
 export function proxyRequestHandler(req: Request, res: Response, next: NextFunction) {
   const url = req.query.url as string;
   
+  // Extract content filter settings from query parameters
+  const blockImages = req.query.blockImages === 'true';
+  const blockScripts = req.query.blockScripts === 'true';
+  const blockAds = req.query.blockAds === 'true';
+  const blockTrackers = req.query.blockTrackers === 'true';
+  const blockPopups = req.query.blockPopups === 'true';
+  
+  // Log filter settings if any are enabled
+  if (blockImages || blockScripts || blockAds || blockTrackers || blockPopups) {
+    log(`Content filter settings - Images: ${blockImages}, Scripts: ${blockScripts}, Ads: ${blockAds}, Trackers: ${blockTrackers}, Popups: ${blockPopups}`, 'proxy-filter');
+  }
+  
   if (!url) {
     return res.status(400).json({ 
       error: 'Missing URL',
@@ -396,6 +513,20 @@ export function proxyRequestHandler(req: Request, res: Response, next: NextFunct
     // Check for known challenging websites
     if (KNOWN_BLOCKING_DOMAINS.includes(targetUrl.hostname)) {
       log(`Warning: Attempting to proxy a potentially blocking site: ${targetUrl.hostname}`, 'proxy');
+    }
+    
+    // Add content filter settings if any are enabled
+    const filterOptions: ContentFilterOptions = {
+      blockImages: req.query.blockImages === 'true',
+      blockScripts: req.query.blockScripts === 'true',
+      blockAds: req.query.blockAds === 'true',
+      blockTrackers: req.query.blockTrackers === 'true',
+      blockPopups: req.query.blockPopups === 'true'
+    };
+    
+    // Only add filter options if at least one is enabled
+    if (Object.values(filterOptions).some(value => value === true)) {
+      proxyOptions.filterOptions = filterOptions;
     }
     
     // Create a proxy for this specific request
