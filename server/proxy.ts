@@ -506,9 +506,18 @@ export function proxyRequestHandler(req: Request, res: Response, next: NextFunct
   const blockTrackers = req.query.blockTrackers === 'true';
   const blockPopups = req.query.blockPopups === 'true';
   
+  // Extract privacy settings from query parameters
+  const incognitoMode = req.query.incognito === 'true';
+  const useTor = req.query.tor === 'true';
+  
   // Log filter settings if any are enabled
   if (blockImages || blockScripts || blockAds || blockTrackers || blockPopups) {
     log(`Content filter settings - Images: ${blockImages}, Scripts: ${blockScripts}, Ads: ${blockAds}, Trackers: ${blockTrackers}, Popups: ${blockPopups}`, 'proxy-filter');
+  }
+  
+  // Log privacy settings if any are enabled
+  if (incognitoMode || useTor) {
+    log(`Privacy settings - Incognito: ${incognitoMode}, Tor: ${useTor}`, 'proxy-privacy');
   }
   
   if (!url) {
