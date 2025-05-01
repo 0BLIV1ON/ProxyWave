@@ -11,6 +11,12 @@ interface ContentFilterOptions {
   blockPopups: boolean;
 }
 
+// Privacy features interface
+interface PrivacyOptions {
+  incognitoMode: boolean;
+  useTor: boolean;
+}
+
 interface ProxyOptions {
   target: string;
   changeOrigin?: boolean;
@@ -22,6 +28,7 @@ interface ProxyOptions {
   onProxyRes?: (proxyRes: any, req: Request, res: Response) => void;
   onError?: (err: Error, req: Request, res: Response) => void;
   filterOptions?: ContentFilterOptions;
+  privacyOptions?: PrivacyOptions;
 }
 
 // List of known problematic domains that might block proxy access
