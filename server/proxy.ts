@@ -2,10 +2,17 @@ import { createProxyMiddleware, type RequestHandler, type Options } from 'http-p
 import { type Request, type Response, type NextFunction } from 'express';
 import { log } from './vite';
 
-// Extended options interface for our proxy
-interface ProxyOptions extends Options {
+// Custom options interface for our proxy
+interface ProxyOptions {
   target: string;
-  pathRewrite?: (path: string, req: Request) => string;
+  changeOrigin?: boolean;
+  secure?: boolean;
+  ws?: boolean;
+  followRedirects?: boolean;
+  pathRewrite?: (path: string, req: any) => string;
+  onProxyReq?: (proxyReq: any, req: Request, res: Response) => void;
+  onProxyRes?: (proxyRes: any, req: Request, res: Response) => void;
+  onError?: (err: Error, req: Request, res: Response) => void;
 }
 
 // List of known problematic domains that might block proxy access
@@ -133,7 +140,8 @@ export function rewriteLinksMiddleware(req: Request, res: Response, next: NextFu
         // Rewrite absolute URLs
         modifiedBody = body.replace(
           /href=(["'])(https?:\/\/[^"']+)(["'])/gi, 
-          (match, prefix, url, suffix) => `href=${prefix}${proxyBasePath}${encodeURIComponent(url)}${suffix}`
+          (match: string, prefix: string, url: string, suffix: string): string => 
+            `href=${prefix}${proxyBasePath}${encodeURIComponent(url)}${suffix}`
         );
         
         // Rewrite relative URLs for href
