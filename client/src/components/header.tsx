@@ -19,9 +19,6 @@ export default function Header() {
         </Link>
         
         <div className="hidden md:flex items-center space-x-4">
-          <a href="#" className="text-foreground hover:text-primary transition">How It Works</a>
-          <a href="#" className="text-foreground hover:text-primary transition">Features</a>
-          <a href="#" className="text-foreground hover:text-primary transition">About</a>
           <Link href="/analytics">
             <Button variant="ghost" className="flex items-center">
               <BarChart2 className="mr-2 h-4 w-4" /> Analytics
@@ -44,9 +41,6 @@ export default function Header() {
         <div className="md:hidden bg-white border-t">
           <div className="container mx-auto px-4 py-2">
             <div className="flex flex-col space-y-2">
-              <a href="#" className="text-foreground hover:text-primary transition py-2">How It Works</a>
-              <a href="#" className="text-foreground hover:text-primary transition py-2">Features</a>
-              <a href="#" className="text-foreground hover:text-primary transition py-2">About</a>
               <Link href="/analytics" className="block">
                 <Button variant="ghost" className="flex items-center justify-center w-full mt-2">
                   <BarChart2 className="mr-2 h-4 w-4" /> Analytics
