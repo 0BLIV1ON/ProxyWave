@@ -4,8 +4,7 @@ import {
   Video, 
   Lock, 
   File, 
-  Settings, 
-  DollarSign 
+  Settings 
 } from "lucide-react";
 
 export default function FeaturesSection() {
@@ -37,9 +36,9 @@ export default function FeaturesSection() {
       description: "No configuration required; it acts as a proxy browser with simple operation."
     },
     {
-      icon: <DollarSign className="text-xl" />,
-      title: "Free Basic Version",
-      description: "The basic version of the online proxy is free of charge with premium options available."
+      icon: <Shield className="text-xl" />,
+      title: "Free Service",
+      description: "The online proxy is completely free of charge for all users."
     }
   ];
 

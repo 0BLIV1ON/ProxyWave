@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Crown } from "lucide-react";
+import { Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -115,12 +115,6 @@ export default function ProxyForm() {
             ) : (
               <span>Go!</span>
             )}
-          </Button>
-          <Button 
-            type="button" 
-            className="bg-accent hover:bg-accent/90 text-white px-4 py-3 rounded-md transition flex-shrink-0 flex items-center"
-          >
-            <Crown className="h-4 w-4 mr-1" /> Premium
           </Button>
         </div>
       </form>

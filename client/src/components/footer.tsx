@@ -1,9 +1,5 @@
 import { 
-  ShieldCheck, 
-  Twitter, 
-  Facebook, 
-  Instagram, 
-  Github 
+  ShieldCheck
 } from "lucide-react";
 
 export default function Footer() {
@@ -11,8 +7,7 @@ export default function Footer() {
     { name: "Web Proxy", href: "#" },
     { name: "Secure Browsing", href: "#" },
     { name: "Video Streaming", href: "#" },
-    { name: "Anonymous Surfing", href: "#" },
-    { name: "Premium Features", href: "#" }
+    { name: "Anonymous Surfing", href: "#" }
   ];
   
   const supportLinks = [
@@ -43,20 +38,6 @@ export default function Footer() {
             <p className="text-gray-400 mb-4">
               A secure web proxy service that protects your privacy while browsing the internet.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition">
-                <Github className="h-5 w-5" />
-              </a>
-            </div>
           </div>
           
           <div>

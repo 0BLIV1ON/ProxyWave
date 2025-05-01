@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Menu, Crown, BarChart2 } from "lucide-react";
+import { ShieldCheck, Menu, BarChart2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 
@@ -27,9 +27,6 @@ export default function Header() {
               <BarChart2 className="mr-2 h-4 w-4" /> Analytics
             </Button>
           </Link>
-          <Button className="flex items-center">
-            <Crown className="mr-2 h-4 w-4" /> Get Premium
-          </Button>
           <Button variant="outline">
             Sign In
           </Button>
@@ -58,9 +55,6 @@ export default function Header() {
                   <BarChart2 className="mr-2 h-4 w-4" /> Analytics
                 </Button>
               </Link>
-              <Button className="flex items-center justify-center mt-2">
-                <Crown className="mr-2 h-4 w-4" /> Get Premium
-              </Button>
               <Button variant="outline" className="mt-2">
                 Sign In
               </Button>
