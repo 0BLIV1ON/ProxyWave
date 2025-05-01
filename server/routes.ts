@@ -115,8 +115,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Analytics API routes
+  app.get(`${apiPrefix}/analytics`, async (req, res) => {
+    try {
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+      const analyticsData = await storage.getAnalyticsDashboardData(days);
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching analytics data:", error);
+      res.status(500).json({ message: "Failed to fetch analytics data" });
+    }
+  });
+  
+  // Record page view for analytics
+  app.post(`${apiPrefix}/analytics/pageview`, async (req, res) => {
+    try {
+      const { path, referrer, userAgent, ip } = req.body;
+      const userId = req.session?.userId || null;
+      
+      if (!path) {
+        return res.status(400).json({ message: "Path is required" });
+      }
+      
+      const pageView = await storage.recordPageView({
+        path,
+        userId,
+        referrer,
+        userAgent,
+        ip
+      });
+      
+      res.status(201).json(pageView);
+    } catch (error) {
+      console.error("Error recording page view:", error);
+      res.status(500).json({ message: "Failed to record page view" });
+    }
+  });
+  
   // Handle the actual proxy functionality
-  app.use('/proxy', rewriteLinksMiddleware, proxyRequestHandler);
+  app.use('/proxy', rewriteLinksMiddleware, (req, res, next) => {
+    // Record analytics for proxy requests
+    const startTime = Date.now();
+    
+    // Store the original end method
+    const originalEnd = res.end;
+    
+    // Override end method to capture response data
+    res.end = function(chunk, encoding) {
+      // Calculate response time
+      const responseTime = Date.now() - startTime;
+      
+      // Detect if request is from mobile
+      const userAgent = req.headers['user-agent'] || '';
+      const isMobile = /Mobile|Android|iPhone|iPad|iPod|Windows Phone/i.test(userAgent);
+      
+      // Record the proxy request analytics
+      storage.recordProxyRequest({
+        url: req.query.url as string,
+        userId: req.session?.userId || null,
+        status: res.statusCode,
+        responseTime,
+        contentType: (res.getHeader('content-type') || '') as string,
+        contentSize: parseInt(res.getHeader('content-length') as string || '0'),
+        isMobile,
+        isSuccess: res.statusCode >= 200 && res.statusCode < 400,
+        error: res.statusCode >= 400 ? `HTTP Error ${res.statusCode}` : null
+      }).catch(err => console.error("Failed to record proxy analytics:", err));
+      
+      // Call the original end method
+      return originalEnd.apply(res, arguments as any);
+    };
+    
+    // Continue to the proxy handler
+    proxyRequestHandler(req, res, next);
+  });
   
   // Create HTTP server
   const httpServer = createServer(app);
