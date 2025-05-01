@@ -184,7 +184,18 @@ export default function ProxyViewer() {
     // Create an iframe once we have the URL
     const iframe = document.getElementById("proxy-iframe") as HTMLIFrameElement;
     if (iframe) {
-      iframe.src = `/proxy?url=${encodeURIComponent(url)}`;
+      // Build query string with filter options
+      const queryParams = new URLSearchParams();
+      queryParams.append('url', url);
+      
+      // Add filter settings if enabled
+      if (filterSettings.blockImages) queryParams.append('blockImages', 'true');
+      if (filterSettings.blockScripts) queryParams.append('blockScripts', 'true');
+      if (filterSettings.blockAds) queryParams.append('blockAds', 'true');
+      if (filterSettings.blockTrackers) queryParams.append('blockTrackers', 'true');
+      if (filterSettings.blockPopups) queryParams.append('blockPopups', 'true');
+      
+      iframe.src = `/proxy?${queryParams.toString()}`;
       
       iframe.onload = () => {
         setIsLoading(false);
@@ -232,7 +243,18 @@ export default function ProxyViewer() {
     
     const iframe = document.getElementById("proxy-iframe") as HTMLIFrameElement;
     if (iframe) {
-      iframe.src = `/proxy?url=${encodeURIComponent(url)}`;
+      // Build query string with filter options
+      const queryParams = new URLSearchParams();
+      queryParams.append('url', url);
+      
+      // Add filter settings if enabled
+      if (filterSettings.blockImages) queryParams.append('blockImages', 'true');
+      if (filterSettings.blockScripts) queryParams.append('blockScripts', 'true');
+      if (filterSettings.blockAds) queryParams.append('blockAds', 'true');
+      if (filterSettings.blockTrackers) queryParams.append('blockTrackers', 'true');
+      if (filterSettings.blockPopups) queryParams.append('blockPopups', 'true');
+      
+      iframe.src = `/proxy?${queryParams.toString()}`;
     }
   };
   
