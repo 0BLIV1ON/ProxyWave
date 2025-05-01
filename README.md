@@ -40,7 +40,7 @@ ProxyWave is built with modern web technologies:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/proxywave.git
+git clone https://github.com/0BLIV1ON/proxywave.git
 cd proxywave
 ```
 
