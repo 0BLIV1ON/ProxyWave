@@ -10,18 +10,10 @@ export default function Footer() {
     { name: "Anonymous Surfing", href: "#" }
   ];
   
-  const legalLinks = [
-    { name: "Terms of Service", href: "#" },
-    { name: "Privacy Policy", href: "#" },
-    { name: "Cookie Policy", href: "#" },
-    { name: "GDPR Compliance", href: "#" },
-    { name: "Acceptable Use", href: "#" }
-  ];
-  
   return (
     <footer className="bg-foreground text-white pt-12 pb-6">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
           <div>
             <h3 className="text-xl font-bold mb-4 flex items-center">
               <ShieldCheck className="mr-2" />
@@ -44,29 +36,11 @@ export default function Footer() {
               ))}
             </ul>
           </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-4">Legal</h3>
-            <ul className="space-y-2">
-              {legalLinks.map((link, index) => (
-                <li key={index}>
-                  <a href={link.href} className="text-gray-400 hover:text-white transition">
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
         
         <div className="border-t border-gray-700 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">© 2025 ProxyWave. All rights reserved.</p>
-            <div className="flex space-x-4 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white transition text-sm">Terms</a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-sm">Privacy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-sm">Cookies</a>
-            </div>
           </div>
         </div>
       </div>
