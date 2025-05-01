@@ -1,4 +1,5 @@
 import ProxyForm from "./proxy-form";
+import BrowserExtension from "./browser-extension";
 import { AlertCircle } from "lucide-react";
 
 export default function HeroSection() {
@@ -16,6 +17,7 @@ export default function HeroSection() {
       </p>
       
       <ProxyForm />
+      <BrowserExtension />
     </section>
   );
 }

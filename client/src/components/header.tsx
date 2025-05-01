@@ -27,9 +27,6 @@ export default function Header() {
               <BarChart2 className="mr-2 h-4 w-4" /> Analytics
             </Button>
           </Link>
-          <Button variant="outline">
-            Sign In
-          </Button>
         </div>
         
         <Button 
@@ -55,9 +52,6 @@ export default function Header() {
                   <BarChart2 className="mr-2 h-4 w-4" /> Analytics
                 </Button>
               </Link>
-              <Button variant="outline" className="mt-2">
-                Sign In
-              </Button>
             </div>
           </div>
         </div>
