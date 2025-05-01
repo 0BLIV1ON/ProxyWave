@@ -160,19 +160,70 @@ export function rewriteLinksMiddleware(req: Request, res: Response, next: NextFu
         // Rewrite src attributes (images, scripts, etc.)
         modifiedBody = modifiedBody.replace(
           /src=(["'])(https?:\/\/[^"']+)(["'])/gi,
-          (match, prefix, url, suffix) => `src=${prefix}${proxyBasePath}${encodeURIComponent(url)}${suffix}`
+          (match, prefix, url, suffix) => {
+            // Make sure we're properly encoding the URL
+            const encodedUrl = encodeURIComponent(url);
+            return `src=${prefix}${proxyBasePath}${encodedUrl}${suffix}`;
+          }
         );
         
-        // Rewrite relative URLs for src
+        // Fix for src attributes with relative paths
         modifiedBody = modifiedBody.replace(
           /src=(["'])(?!https?:\/\/)(?!data:)(?!#)([^"']+)(["'])/gi,
           (match, prefix, relativeUrl, suffix) => {
-            // Handle root-relative URLs
-            if (relativeUrl.startsWith('/')) {
-              return `src=${prefix}${proxyBasePath}${encodeURIComponent(baseUrl + relativeUrl)}${suffix}`;
+            try {
+              // Handle root-relative URLs (starting with /)
+              if (relativeUrl.startsWith('/')) {
+                const absoluteUrl = baseUrl + relativeUrl;
+                return `src=${prefix}${proxyBasePath}${encodeURIComponent(absoluteUrl)}${suffix}`;
+              }
+              
+              // Handle fully relative URLs (no leading /)
+              const fullUrl = new URL(relativeUrl, targetUrl).href;
+              return `src=${prefix}${proxyBasePath}${encodeURIComponent(fullUrl)}${suffix}`;
+            } catch (e) {
+              // If we can't parse the URL, leave it as is
+              log(`Error rewriting URL ${relativeUrl}: ${e}`, 'proxy-error');
+              return match;
             }
-            // Handle relative URLs
-            return `src=${prefix}${proxyBasePath}${encodeURIComponent(new URL(relativeUrl, targetUrl).href)}${suffix}`;
+          }
+        );
+        
+        // Special handling for image URLs
+        modifiedBody = modifiedBody.replace(
+          /<img[^>]+>/gi,
+          (imgTag) => {
+            // Make sure all img tags have proper proxied src attributes
+            return imgTag.replace(
+              /src=(["'])([^"']+)(["'])/gi,
+              (srcMatch, srcPrefix, imgUrl, srcSuffix) => {
+                try {
+                  // Skip data URLs and anchors
+                  if (imgUrl.startsWith('data:') || imgUrl.startsWith('#')) {
+                    return srcMatch;
+                  }
+                  
+                  // Handle absolute URLs
+                  if (imgUrl.match(/^https?:\/\//i)) {
+                    return `src=${srcPrefix}${proxyBasePath}${encodeURIComponent(imgUrl)}${srcSuffix}`;
+                  }
+                  
+                  // Handle root-relative URLs
+                  if (imgUrl.startsWith('/')) {
+                    const absoluteUrl = baseUrl + imgUrl;
+                    return `src=${srcPrefix}${proxyBasePath}${encodeURIComponent(absoluteUrl)}${srcSuffix}`;
+                  }
+                  
+                  // Handle relative URLs
+                  const fullUrl = new URL(imgUrl, targetUrl).href;
+                  return `src=${srcPrefix}${proxyBasePath}${encodeURIComponent(fullUrl)}${srcSuffix}`;
+                } catch (e) {
+                  // If URL parsing fails, leave as is
+                  log(`Error rewriting image URL ${imgUrl}: ${e}`, 'proxy-error');
+                  return srcMatch;
+                }
+              }
+            );
           }
         );
         
