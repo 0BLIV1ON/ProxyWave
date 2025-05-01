@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { extractDomain, getFaviconUrl } from "@/lib/utils";
 import LoadingAnimation from "@/components/loading-animation";
 import ContentFilter, { ContentFilterSettings, defaultFilterSettings } from "@/components/content-filter";
+import PrivacySettings, { PrivacySettings as PrivacySettingsType, defaultPrivacySettings } from "@/components/privacy-settings";
 
 // Types for error handling
 interface ProxyError {
@@ -37,6 +38,7 @@ export default function ProxyViewer() {
   const [loadAttempts, setLoadAttempts] = useState<number>(0);
   const [loadingAnimationType, setLoadingAnimationType] = useState<"default" | "globe" | "shield" | "connection">("shield");
   const [filterSettings, setFilterSettings] = useState<ContentFilterSettings>(defaultFilterSettings);
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettingsType>(defaultPrivacySettings);
   const { toast } = useToast();
   
   const MAX_LOAD_ATTEMPTS = 2;
@@ -292,6 +294,16 @@ export default function ProxyViewer() {
                 settings={filterSettings}
                 onSettingsChange={(newSettings) => {
                   setFilterSettings(newSettings);
+                  // Reload the page with new settings
+                  if (url) {
+                    handleRefreshClick();
+                  }
+                }}
+              />
+              <PrivacySettings
+                settings={privacySettings}
+                onSettingsChange={(newSettings) => {
+                  setPrivacySettings(newSettings);
                   // Reload the page with new settings
                   if (url) {
                     handleRefreshClick();
