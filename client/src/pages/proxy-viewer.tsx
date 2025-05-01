@@ -186,13 +186,13 @@ export default function ProxyViewer() {
         if (isLoading) {
           setError({
             title: "Request Timeout",
-            message: "The website is taking too long to respond. It may be temporarily unavailable or too large to proxy efficiently.",
+            message: "The website is taking too long to respond. Try a simpler website like 'example.com' or 'httpbin.org' for testing.",
             type: 'timeout',
             icon: <AlertTriangle className="h-16 w-16 text-yellow-500" />
           });
           setIsLoading(false);
         }
-      }, 20000); // 20 second timeout
+      }, 30000); // 30 second timeout
       
       return () => clearTimeout(timeoutId);
     }

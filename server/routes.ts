@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { proxyRequestHandler, rewriteLinksMiddleware } from "./proxy";
 import { urlSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import axios from "axios";
+import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API prefix for all routes
@@ -74,6 +76,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error recording website visit:", error);
       res.status(500).json({ message: "Failed to record website visit" });
+    }
+  });
+  
+  // Direct image proxy endpoint - handles images directly without rewriting
+  app.get('/image-proxy', async (req, res) => {
+    const imageUrl = req.query.url as string;
+    
+    if (!imageUrl) {
+      return res.status(400).send('Missing image URL');
+    }
+    
+    try {
+      log(`Directly proxying image: ${imageUrl}`, 'image-proxy');
+      
+      // Fetch the image with axios
+      const response = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
+        timeout: 10000, // 10 second timeout
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      // Set appropriate headers
+      res.set('Content-Type', response.headers['content-type'] || 'image/jpeg');
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      res.set('Access-Control-Allow-Origin', '*');
+      
+      // Send the image data
+      return res.send(Buffer.from(response.data, 'binary'));
+    } catch (error) {
+      log(`Error proxying image ${imageUrl}: ${error}`, 'image-proxy-error');
+      // Return a 1x1 transparent GIF as fallback
+      res.set('Content-Type', 'image/gif');
+      const transparentPixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+      return res.send(transparentPixel);
     }
   });
   

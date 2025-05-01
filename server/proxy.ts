@@ -84,16 +84,28 @@ export function createProxy(options: ProxyOptions): RequestHandler {
           });
         }
         
-        // Set Content-Security-Policy to allow framing
-        proxyRes.headers['content-security-policy'] = "frame-ancestors 'self'";
+        // Set Content-Security-Policy to allow framing and images from any source
+        proxyRes.headers['content-security-policy'] = 
+          "default-src * 'unsafe-inline' 'unsafe-eval' data:; " +
+          "img-src * data: blob: 'unsafe-inline'; " + 
+          "frame-ancestors 'self'";
+          
+        // Remove X-Frame-Options to allow our own framing
+        delete proxyRes.headers['x-frame-options'];
+        
+        // Set our own frame options
         proxyRes.headers['x-frame-options'] = 'SAMEORIGIN';
         
         // Check content type for HTML to apply link rewriting
         const contentType = proxyRes.headers['content-type'] || '';
+        log(`Response headers: ${JSON.stringify(proxyRes.headers)}`, 'proxy-debug');
+        
         if (contentType.includes('text/html')) {
           log(`Received HTML content from ${target}`, 'proxy');
+        } else if (contentType.includes('image/')) {
+          log(`Received image content: ${contentType} from ${req.url}`, 'proxy');
         } else {
-          log(`Received non-HTML content (${contentType}) from ${target}`, 'proxy');
+          log(`Received content: (${contentType}) from ${target} ${req.url}`, 'proxy');
         }
       } catch (err) {
         log(`Error in onProxyRes: ${err}`, 'proxy-error');
@@ -189,11 +201,15 @@ export function rewriteLinksMiddleware(req: Request, res: Response, next: NextFu
           }
         );
         
-        // Special handling for image URLs
+        // Special handling for image URLs using the direct image proxy endpoint
         modifiedBody = modifiedBody.replace(
           /<img[^>]+>/gi,
           (imgTag) => {
-            // Make sure all img tags have proper proxied src attributes
+            // Log the original image tag
+            log(`Processing img tag: ${imgTag}`, 'proxy-debug');
+            
+            // Make sure all img tags have proper proxied src attributes using our dedicated image-proxy
+            // This bypasses the regular proxy mechanism for better image handling
             return imgTag.replace(
               /src=(["'])([^"']+)(["'])/gi,
               (srcMatch, srcPrefix, imgUrl, srcSuffix) => {
@@ -203,20 +219,23 @@ export function rewriteLinksMiddleware(req: Request, res: Response, next: NextFu
                     return srcMatch;
                   }
                   
+                  let fullImageUrl = '';
+                  
                   // Handle absolute URLs
                   if (imgUrl.match(/^https?:\/\//i)) {
-                    return `src=${srcPrefix}${proxyBasePath}${encodeURIComponent(imgUrl)}${srcSuffix}`;
+                    fullImageUrl = imgUrl;
                   }
-                  
                   // Handle root-relative URLs
-                  if (imgUrl.startsWith('/')) {
-                    const absoluteUrl = baseUrl + imgUrl;
-                    return `src=${srcPrefix}${proxyBasePath}${encodeURIComponent(absoluteUrl)}${srcSuffix}`;
+                  else if (imgUrl.startsWith('/')) {
+                    fullImageUrl = baseUrl + imgUrl;
+                  }
+                  // Handle relative URLs
+                  else {
+                    fullImageUrl = new URL(imgUrl, targetUrl).href;
                   }
                   
-                  // Handle relative URLs
-                  const fullUrl = new URL(imgUrl, targetUrl).href;
-                  return `src=${srcPrefix}${proxyBasePath}${encodeURIComponent(fullUrl)}${srcSuffix}`;
+                  // Use our dedicated image proxy endpoint instead
+                  return `src=${srcPrefix}/image-proxy?url=${encodeURIComponent(fullImageUrl)}${srcSuffix}`;
                 } catch (e) {
                   // If URL parsing fails, leave as is
                   log(`Error rewriting image URL ${imgUrl}: ${e}`, 'proxy-error');
@@ -224,6 +243,14 @@ export function rewriteLinksMiddleware(req: Request, res: Response, next: NextFu
                 }
               }
             );
+          }
+        );
+        
+        // Add inline style to show image URLs in case they're not loading
+        modifiedBody = modifiedBody.replace(
+          /<img([^>]*)>/gi,
+          (match, attributes) => {
+            return `<img${attributes} onerror="console.error('Failed to load image:', this.src); this.style.border='1px solid red'; this.style.padding='5px'; this.title=this.src;">`;
           }
         );
         
