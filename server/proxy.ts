@@ -28,10 +28,17 @@ export function createProxy(options: ProxyOptions): RequestHandler {
   // Extract target to avoid duplicate property
   const { target, ...restOptions } = options;
   
+  // Ensure target uses HTTPS
+  let secureTarget = target;
+  if (secureTarget.startsWith('http://')) {
+    secureTarget = secureTarget.replace('http://', 'https://');
+    log(`Upgraded connection to SSL/TLS: ${secureTarget}`, 'proxy-security');
+  }
+
   const defaultOptions = {
-    target, // Use target from options
+    target: secureTarget, // Use secure target
     changeOrigin: true,
-    secure: false, // Allow insecure SSL
+    secure: true, // Enforce secure SSL/TLS connections
     ws: false,
     followRedirects: true,
     onProxyReq: (proxyReq: any, req: Request, res: Response) => {
@@ -337,7 +344,7 @@ export function proxyRequestHandler(req: Request, res: Response, next: NextFunct
   
   try {
     // Create a URL object to validate the URL
-    const targetUrl = new URL(url);
+    let targetUrl = new URL(url);
     
     // Check if URL uses supported protocol
     if (targetUrl.protocol !== 'http:' && targetUrl.protocol !== 'https:') {
@@ -345,6 +352,12 @@ export function proxyRequestHandler(req: Request, res: Response, next: NextFunct
         error: 'Unsupported Protocol',
         message: `Protocol "${targetUrl.protocol}" is not supported. Only HTTP and HTTPS are allowed.`
       });
+    }
+    
+    // Force HTTPS for security
+    if (targetUrl.protocol === 'http:') {
+      targetUrl = new URL(targetUrl.href.replace('http:', 'https:'));
+      log(`Upgraded connection to SSL/TLS: ${targetUrl.href}`, 'proxy-security');
     }
     
     // Block accessing localhost/internal IPs for security
