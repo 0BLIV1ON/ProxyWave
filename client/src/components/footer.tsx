@@ -21,6 +21,7 @@ export default function Footer() {
         <div className="border-t border-gray-700 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">© 2025 ProxyWave. All rights reserved.</p>
+            <p className="text-gray-600 text-xs mt-2 md:mt-0 opacity-60 cursor-help" title="Try clicking the logo 5 times">Psst... there might be a secret...</p>
           </div>
         </div>
       </div>

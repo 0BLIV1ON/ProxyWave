@@ -2,21 +2,36 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Menu, BarChart2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
+import PrivacyFactsDialog, { usePrivacyFacts } from "./privacy-facts";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { incrementCount, isEasterEggTriggered, setIsEasterEggTriggered } = usePrivacyFacts();
 
   return (
     <header className="bg-white shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/">
-          <div className="flex items-center cursor-pointer">
+          <div 
+            className="flex items-center cursor-pointer" 
+            onClick={(e) => {
+              // Stop propagation to prevent navigation when clicking multiple times
+              e.preventDefault();
+              incrementCount();
+            }}
+          >
             <div className="text-primary text-3xl font-bold flex items-center">
               <ShieldCheck className="mr-2" />
               ProxyWave
             </div>
           </div>
         </Link>
+        
+        {/* Easter egg dialog */}
+        <PrivacyFactsDialog 
+          open={isEasterEggTriggered} 
+          onClose={() => setIsEasterEggTriggered(false)} 
+        />
         
         <div className="hidden md:flex items-center space-x-4">
           <Link href="/analytics">
