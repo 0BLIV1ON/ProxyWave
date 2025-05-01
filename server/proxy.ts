@@ -42,7 +42,7 @@ const KNOWN_BLOCKING_DOMAINS = [
 // Create a proxy middleware factory function
 export function createProxy(options: ProxyOptions): RequestHandler {
   // Extract target to avoid duplicate property
-  const { target, filterOptions, ...restOptions } = options;
+  const { target, filterOptions, privacyOptions, ...restOptions } = options;
   
   // Ensure target uses HTTPS
   let secureTarget = target;
@@ -54,6 +54,11 @@ export function createProxy(options: ProxyOptions): RequestHandler {
   // Log filter options if provided
   if (filterOptions) {
     log(`Content filtering enabled: ${JSON.stringify(filterOptions)}`, 'proxy-filter');
+  }
+  
+  // Log privacy options if provided
+  if (privacyOptions) {
+    log(`Privacy features enabled: ${JSON.stringify(privacyOptions)}`, 'proxy-privacy');
   }
 
   const defaultOptions = {
@@ -110,6 +115,53 @@ export function createProxy(options: ProxyOptions): RequestHandler {
               .replace(/Domain=[^;]+;/i, '')
               .replace(/Path=\//i, `Path=/proxy?url=${target}/`);
           });
+        }
+        
+        // Get privacy options if any
+        const privacyOptions = options.privacyOptions;
+        
+        // Apply privacy features if enabled
+        if (privacyOptions) {
+          // Handle incognito mode (strip cookies and prevent tracking)
+          if (privacyOptions.incognitoMode) {
+            log('Applying incognito mode privacy features', 'proxy-privacy');
+            
+            // Remove all cookies in incognito mode
+            if (proxyRes.headers['set-cookie']) {
+              proxyRes.headers['set-cookie'] = [];
+              log('Stripped cookies for incognito browsing', 'proxy-privacy');
+            }
+            
+            // Add cache control headers to prevent caching
+            proxyRes.headers['cache-control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+            proxyRes.headers['pragma'] = 'no-cache';
+            proxyRes.headers['expires'] = '0';
+            
+            // Add Do Not Track header
+            proxyRes.headers['dnt'] = '1';
+            
+            // Remove potential tracking headers
+            delete proxyRes.headers['etag'];
+            delete proxyRes.headers['last-modified'];
+            
+            // Add additional security headers for incognito
+            proxyRes.headers['referrer-policy'] = 'no-referrer';
+          }
+          
+          // Handle Tor routing simulation (add anonymity indicators)
+          if (privacyOptions.useTor) {
+            log('Applying Tor routing simulation', 'proxy-privacy');
+            
+            // Since we're simulating Tor routing, add educational headers
+            proxyRes.headers['x-tor-simulation'] = 'active';
+            
+            // When Tor is enabled, we add stronger privacy headers
+            proxyRes.headers['referrer-policy'] = 'no-referrer';
+            proxyRes.headers['permissions-policy'] = 'geolocation=(), microphone=(), camera=(), payment=()';
+            
+            // Note: In a real implementation, this would actually route through Tor network
+            // For now, we're just adding the headers to show the feature is "active"
+          }
         }
         
         // Get filter options if any
@@ -534,6 +586,17 @@ export function proxyRequestHandler(req: Request, res: Response, next: NextFunct
     // Only add filter options if at least one is enabled
     if (Object.values(filterOptions).some(value => value === true)) {
       proxyOptions.filterOptions = filterOptions;
+    }
+    
+    // Add privacy options if any are enabled
+    const privacyOptions: PrivacyOptions = {
+      incognitoMode,
+      useTor
+    };
+    
+    // Only add privacy options if at least one is enabled
+    if (incognitoMode || useTor) {
+      proxyOptions.privacyOptions = privacyOptions;
     }
     
     // Create a proxy for this specific request
