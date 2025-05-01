@@ -14,6 +14,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { extractDomain, getFaviconUrl } from "@/lib/utils";
+import LoadingAnimation from "@/components/loading-animation";
+import ContentFilter, { ContentFilterSettings, defaultFilterSettings } from "@/components/content-filter";
 
 // Types for error handling
 interface ProxyError {
@@ -33,6 +35,8 @@ export default function ProxyViewer() {
   const [pageTitle, setPageTitle] = useState<string>("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loadAttempts, setLoadAttempts] = useState<number>(0);
+  const [loadingAnimationType, setLoadingAnimationType] = useState<"default" | "globe" | "shield" | "connection">("shield");
+  const [filterSettings, setFilterSettings] = useState<ContentFilterSettings>(defaultFilterSettings);
   const { toast } = useToast();
   
   const MAX_LOAD_ATTEMPTS = 2;
@@ -76,6 +80,23 @@ export default function ProxyViewer() {
           description: `${domain} may block proxy access. Some features might not work correctly.`,
           duration: 5000,
         });
+      }
+      
+      // Set animation type based on the domain
+      if (domain.includes('bank') || domain.includes('login') || domain.includes('account')) {
+        // Security-focused sites
+        setLoadingAnimationType('shield');
+      } else if (domain.includes('news') || domain.includes('map') || domain.includes('travel')) {
+        // Global/international sites
+        setLoadingAnimationType('globe');
+      } else if (domain.includes('mail') || domain.includes('chat') || domain.includes('social')) {
+        // Connection-based sites
+        setLoadingAnimationType('connection');
+      } else {
+        // Default for other sites
+        const animationTypes: Array<"default" | "globe" | "shield" | "connection"> = ['default', 'globe', 'shield', 'connection'];
+        const randomType = animationTypes[Math.floor(Math.random() * animationTypes.length)];
+        setLoadingAnimationType(randomType);
       }
       
       // Record website visit
@@ -245,6 +266,16 @@ export default function ProxyViewer() {
             </div>
             
             <div className="flex items-center space-x-2">
+              <ContentFilter 
+                settings={filterSettings}
+                onSettingsChange={(newSettings) => {
+                  setFilterSettings(newSettings);
+                  // Reload the page with new settings
+                  if (url) {
+                    handleRefreshClick();
+                  }
+                }}
+              />
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -271,10 +302,11 @@ export default function ProxyViewer() {
         {/* Loading indicator */}
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-            <div className="flex flex-col items-center">
-              <div className="h-12 w-12 rounded-full border-4 border-t-primary border-b-primary border-l-gray-200 border-r-gray-200 animate-spin mb-4"></div>
-              <p className="text-gray-600">Loading {extractDomain(url)}...</p>
-            </div>
+            <LoadingAnimation
+              type={loadingAnimationType}
+              text={`Loading ${extractDomain(url)}...`}
+              size="lg"
+            />
           </div>
         )}
         

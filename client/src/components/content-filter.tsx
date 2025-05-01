@@ -1,28 +1,12 @@
-import { useState } from "react";
-import { 
-  Shield, 
-  ImageOff, 
-  FileCode, 
-  AlertCircle,
-  Code,
-  ExternalLink
-} from "lucide-react";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from "@/components/ui/collapsible";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
+import { Settings, ImageOff, FileCode, X, Ban, Shield, TargetIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+// Content filter settings interface
 export interface ContentFilterSettings {
   blockImages: boolean;
   blockScripts: boolean;
@@ -31,6 +15,7 @@ export interface ContentFilterSettings {
   blockPopups: boolean;
 }
 
+// Default settings
 export const defaultFilterSettings: ContentFilterSettings = {
   blockImages: false,
   blockScripts: false,
@@ -45,173 +30,131 @@ interface ContentFilterProps {
 }
 
 export default function ContentFilter({ settings, onSettingsChange }: ContentFilterProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  const handleSettingChange = (key: keyof ContentFilterSettings, value: boolean) => {
-    const newSettings = { ...settings, [key]: value };
-    onSettingsChange(newSettings);
+  // Create a temporary state for the settings to prevent immediate application
+  const [tempSettings, setTempSettings] = React.useState<ContentFilterSettings>(settings);
+
+  // Handle switch changes
+  const handleSwitchChange = (setting: keyof ContentFilterSettings) => {
+    setTempSettings(prev => ({
+      ...prev,
+      [setting]: !prev[setting]
+    }));
   };
-  
+
+  // Apply settings
+  const applySettings = () => {
+    onSettingsChange(tempSettings);
+  };
+
+  // Reset to defaults
+  const resetToDefaults = () => {
+    setTempSettings(defaultFilterSettings);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <Shield className="h-5 w-5 text-primary mr-2" />
-            <h3 className="text-lg font-medium">Content Filtering</h3>
-          </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm">
-              {isOpen ? "Hide options" : "Show options"}
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        
-        {!isOpen && (
-          <div className="text-sm text-muted-foreground">
-            {Object.entries(settings).filter(([, value]) => value).length} filters enabled
-          </div>
-        )}
-        
-        <CollapsibleContent className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="block-images" 
-                checked={settings.blockImages}
-                onCheckedChange={(checked) => handleSettingChange('blockImages', checked)}
-              />
-              <Label htmlFor="block-images" className="flex items-center">
-                <ImageOff className="h-4 w-4 mr-2" />
-                Block Images
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertCircle className="h-3.5 w-3.5 ml-1 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-[200px] text-xs">
-                        Blocks all images from loading. This may break the layout of some websites but helps save bandwidth.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Shield className="h-4 w-4" />
+          Content Filter
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <Card className="border-none shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-sm font-medium">Content Filtering Options</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <ImageOff className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="block-images" className="text-sm font-normal">
+                    Block Images
+                  </Label>
+                </div>
+                <Switch
+                  id="block-images"
+                  checked={tempSettings.blockImages}
+                  onCheckedChange={() => handleSwitchChange("blockImages")}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FileCode className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="block-scripts" className="text-sm font-normal">
+                    Block Scripts
+                  </Label>
+                </div>
+                <Switch
+                  id="block-scripts"
+                  checked={tempSettings.blockScripts}
+                  onCheckedChange={() => handleSwitchChange("blockScripts")}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Ban className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="block-ads" className="text-sm font-normal">
+                    Block Ads
+                  </Label>
+                </div>
+                <Switch
+                  id="block-ads"
+                  checked={tempSettings.blockAds}
+                  onCheckedChange={() => handleSwitchChange("blockAds")}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <TargetIcon className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="block-trackers" className="text-sm font-normal">
+                    Block Trackers
+                  </Label>
+                </div>
+                <Switch
+                  id="block-trackers"
+                  checked={tempSettings.blockTrackers}
+                  onCheckedChange={() => handleSwitchChange("blockTrackers")}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="block-popups" className="text-sm font-normal">
+                    Block Popups
+                  </Label>
+                </div>
+                <Switch
+                  id="block-popups"
+                  checked={tempSettings.blockPopups}
+                  onCheckedChange={() => handleSwitchChange("blockPopups")}
+                />
+              </div>
+              
+              <div className="flex justify-between pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={resetToDefaults}
+                >
+                  Reset
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={applySettings}
+                >
+                  Apply
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="block-scripts" 
-                checked={settings.blockScripts}
-                onCheckedChange={(checked) => handleSettingChange('blockScripts', checked)}
-              />
-              <Label htmlFor="block-scripts" className="flex items-center">
-                <Code className="h-4 w-4 mr-2" />
-                Block Scripts
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertCircle className="h-3.5 w-3.5 ml-1 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-[200px] text-xs">
-                        Blocks all JavaScript from running. This may break website functionality but enhances privacy.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="block-ads" 
-                checked={settings.blockAds}
-                onCheckedChange={(checked) => handleSettingChange('blockAds', checked)}
-              />
-              <Label htmlFor="block-ads" className="flex items-center">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Block Ads
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertCircle className="h-3.5 w-3.5 ml-1 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-[200px] text-xs">
-                        Blocks common ad scripts and networks. Makes browsing faster and cleaner.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="block-trackers" 
-                checked={settings.blockTrackers}
-                onCheckedChange={(checked) => handleSettingChange('blockTrackers', checked)}
-              />
-              <Label htmlFor="block-trackers" className="flex items-center">
-                <FileCode className="h-4 w-4 mr-2" />
-                Block Trackers
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertCircle className="h-3.5 w-3.5 ml-1 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-[200px] text-xs">
-                        Blocks tracking scripts that monitor your browsing behavior.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="block-popups" 
-                checked={settings.blockPopups}
-                onCheckedChange={(checked) => handleSettingChange('blockPopups', checked)}
-              />
-              <Label htmlFor="block-popups" className="flex items-center">
-                <Shield className="h-4 w-4 mr-2" />
-                Block Popups
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertCircle className="h-3.5 w-3.5 ml-1 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="w-[200px] text-xs">
-                        Blocks popup windows and modal dialogs.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
-            </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">
-              More aggressive filtering may cause some websites to break.
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onSettingsChange(defaultFilterSettings)}
-            >
-              Reset to defaults
-            </Button>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+          </CardContent>
+        </Card>
+      </PopoverContent>
+    </Popover>
   );
 }
